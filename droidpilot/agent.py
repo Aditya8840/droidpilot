@@ -1,4 +1,5 @@
 import json
+import logging
 import time
 
 from openai import OpenAI
@@ -7,6 +8,8 @@ from . import adb
 from .ui_tree import parse
 from .actions import TOOLS
 from .prompts import SYSTEM_PROMPT
+
+logger = logging.getLogger("droidpilot")
 
 SWIPE_OFFSETS = {
     "up": (0, 1, 0, -1),
@@ -113,9 +116,9 @@ def run(prompt: str, model: str = "gpt-4o", max_steps: int = 30) -> str:
 
     serial = adb.check_device()
     screen_size = adb.get_screen_size()
-    print(f"Connected to device: {serial}")
-    print(f"Screen size: {screen_size[0]}x{screen_size[1]}")
-    print(f"Task: {prompt}\n")
+    logger.info("Connected to device: %s", serial)
+    logger.info("Screen size: %sx%s", screen_size[0], screen_size[1])
+    logger.info("Task: %s", prompt)
 
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
@@ -126,14 +129,16 @@ def run(prompt: str, model: str = "gpt-4o", max_steps: int = 30) -> str:
         try:
             tree_text, ref_map = _get_ui_tree()
         except Exception as e:
-            print(f"  [!] Failed to read UI: {e}")
+            logger.warning("Failed to read UI: %s", e)
             time.sleep(2)
             continue
 
-        messages.append({
-            "role": "user",
-            "content": f"Current screen UI tree:\n```\n{tree_text}\n```",
-        })
+        messages.append(
+            {
+                "role": "user",
+                "content": f"Current screen UI tree:\n```\n{tree_text}\n```",
+            }
+        )
 
         response = client.chat.completions.create(
             model=model,
@@ -146,28 +151,30 @@ def run(prompt: str, model: str = "gpt-4o", max_steps: int = 30) -> str:
         messages.append(message.model_dump(exclude_none=True))
 
         if not message.tool_calls:
-            print(f"  [!] No action returned, retrying...")
+            logger.warning("No action returned, retrying...")
             continue
 
         tool_call = message.tool_calls[0]
         action_name = tool_call.function.name
         action_args = json.loads(tool_call.function.arguments)
 
-        print(f"  Step {step}: {action_name}({json.dumps(action_args)})")
+        logger.info("Step %d: %s(%s)", step, action_name, json.dumps(action_args))
 
         if action_name == "done":
             summary = action_args.get("summary", "Task completed.")
-            print(f"\nDone: {summary}")
+            logger.info("Done: %s", summary)
             return summary
 
         result = _execute_action(action_name, action_args, ref_map, screen_size)
-        print(f"    → {result}")
+        logger.debug("→ %s", result)
 
-        messages.append({
-            "role": "tool",
-            "tool_call_id": tool_call.id,
-            "content": result,
-        })
+        messages.append(
+            {
+                "role": "tool",
+                "tool_call_id": tool_call.id,
+                "content": result,
+            }
+        )
 
         time.sleep(UI_SETTLE_DELAY)
 
