@@ -68,7 +68,18 @@ def tap(x: int, y: int) -> None:
 
 
 def swipe(x1: int, y1: int, x2: int, y2: int, duration_ms: int = 300) -> None:
-    _run(["shell", "input", "swipe", str(x1), str(y1), str(x2), str(y2), str(duration_ms)])
+    _run(
+        [
+            "shell",
+            "input",
+            "swipe",
+            str(x1),
+            str(y1),
+            str(x2),
+            str(y2),
+            str(duration_ms),
+        ]
+    )
 
 
 def input_text(text: str) -> None:
@@ -95,12 +106,17 @@ def press_enter() -> None:
 
 
 def open_app(package_name: str) -> None:
-    _run([
-        "shell", "monkey",
-        "-p", package_name,
-        "-c", "android.intent.category.LAUNCHER",
-        "1",
-    ])
+    _run(
+        [
+            "shell",
+            "monkey",
+            "-p",
+            package_name,
+            "-c",
+            "android.intent.category.LAUNCHER",
+            "1",
+        ]
+    )
 
 
 def list_packages(name: str = "") -> list[str]:

@@ -1,12 +1,11 @@
 import json
 import time
 
-from openai import OpenAI
-
 from . import adb
 from .ui_tree import parse
 from .actions import TOOLS
 from .prompts import SYSTEM_PROMPT
+from .providers import create_provider
 
 SWIPE_OFFSETS = {
     "up": (0, 1, 0, -1),
@@ -108,8 +107,13 @@ def _execute_action(
     return f"Unknown action: {name}"
 
 
-def run(prompt: str, model: str = "gpt-4o", max_steps: int = 30) -> str:
-    client = OpenAI()
+def run(
+    prompt: str,
+    provider: str = "openai",
+    model: str | None = None,
+    max_steps: int = 30,
+) -> str:
+    llm = create_provider(provider, model, SYSTEM_PROMPT, TOOLS)
 
     serial = adb.check_device()
     screen_size = adb.get_screen_size()
@@ -117,10 +121,7 @@ def run(prompt: str, model: str = "gpt-4o", max_steps: int = 30) -> str:
     print(f"Screen size: {screen_size[0]}x{screen_size[1]}")
     print(f"Task: {prompt}\n")
 
-    messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": f"Task: {prompt}"},
-    ]
+    llm.add_user_message(f"Task: {prompt}")
 
     for step in range(1, max_steps + 1):
         try:
@@ -130,44 +131,27 @@ def run(prompt: str, model: str = "gpt-4o", max_steps: int = 30) -> str:
             time.sleep(2)
             continue
 
-        messages.append({
-            "role": "user",
-            "content": f"Current screen UI tree:\n```\n{tree_text}\n```",
-        })
+        llm.add_user_message(f"Current screen UI tree:\n```\n{tree_text}\n```")
 
-        response = client.chat.completions.create(
-            model=model,
-            messages=messages,
-            tools=TOOLS,
-            tool_choice="required",
-        )
+        tool_call = llm.get_tool_call()
 
-        message = response.choices[0].message
-        messages.append(message.model_dump(exclude_none=True))
-
-        if not message.tool_calls:
-            print(f"  [!] No action returned, retrying...")
+        if not tool_call:
+            print("  [!] No action returned, retrying...")
             continue
 
-        tool_call = message.tool_calls[0]
-        action_name = tool_call.function.name
-        action_args = json.loads(tool_call.function.arguments)
+        print(f"  Step {step}: {tool_call.name}({json.dumps(tool_call.arguments)})")
 
-        print(f"  Step {step}: {action_name}({json.dumps(action_args)})")
-
-        if action_name == "done":
-            summary = action_args.get("summary", "Task completed.")
+        if tool_call.name == "done":
+            summary = tool_call.arguments.get("summary", "Task completed.")
             print(f"\nDone: {summary}")
             return summary
 
-        result = _execute_action(action_name, action_args, ref_map, screen_size)
-        print(f"    → {result}")
+        result = _execute_action(
+            tool_call.name, tool_call.arguments, ref_map, screen_size
+        )
+        print(f"    -> {result}")
 
-        messages.append({
-            "role": "tool",
-            "tool_call_id": tool_call.id,
-            "content": result,
-        })
+        llm.add_tool_result(result or "")
 
         time.sleep(UI_SETTLE_DELAY)
 

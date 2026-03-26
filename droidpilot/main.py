@@ -6,10 +6,15 @@ from dotenv import load_dotenv
 
 from . import adb
 from .agent import run
+from .providers import DEFAULT_MODELS, PROVIDERS
 
 
-def main():
+def main() -> None:
     load_dotenv()
+
+    provider_names = sorted(PROVIDERS.keys())
+    default_provider = os.getenv("DROIDPILOT_PROVIDER", "openai")
+    default_model = os.getenv("DROIDPILOT_MODEL")
 
     parser = argparse.ArgumentParser(
         prog="droidpilot",
@@ -17,8 +22,17 @@ def main():
     )
     parser.add_argument("prompt")
     parser.add_argument(
+        "--provider",
+        choices=provider_names,
+        default=default_provider,
+        help=f"LLM provider (default: {default_provider})",
+    )
+    parser.add_argument(
         "--model",
-        default=os.getenv("DROIDPILOT_MODEL", "gpt-4o"),
+        default=default_model,
+        help="Model name (defaults per provider: "
+        + ", ".join(f"{k}={v}" for k, v in sorted(DEFAULT_MODELS.items()))
+        + ")",
     )
     parser.add_argument("--max-steps", type=int, default=30)
 
@@ -31,7 +45,12 @@ def main():
         sys.exit(1)
 
     try:
-        run(args.prompt, model=args.model, max_steps=args.max_steps)
+        run(
+            args.prompt,
+            provider=args.provider,
+            model=args.model,
+            max_steps=args.max_steps,
+        )
     except RuntimeError as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
