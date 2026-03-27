@@ -113,6 +113,7 @@ def parse(xml_str: str) -> tuple[str, dict[int, tuple[int, int]]]:
 
         ref_counter[0] += 1
         ref_id = ref_counter[0]
+        assert bounds is not None  # guaranteed by _is_visible check above
         ref_map[ref_id] = _center_of_bounds(bounds)
         lines.append(_build_element_line(ref_id, node, depth))
 
