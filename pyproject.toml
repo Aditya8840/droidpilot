@@ -9,5 +9,9 @@ dependencies = [
     "python-dotenv>=1.0",
 ]
 
+[project.optional-dependencies]
+anthropic = ["anthropic>=0.30"]
+all = ["anthropic>=0.30"]
+
 [project.scripts]
 droidpilot = "droidpilot.main:main"
