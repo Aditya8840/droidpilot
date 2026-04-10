@@ -101,7 +101,7 @@ def parse(xml_str: str) -> tuple[str, dict[int, tuple[int, int]]]:
 
     def _walk(node: etree._Element, depth: int = 0) -> None:
         bounds = _parse_bounds(node.get("bounds", ""))
-        if not _is_visible(bounds):
+        if not _is_visible(bounds) or bounds is None:
             return
 
         class_name = _short_class_name(node.get("class", ""))

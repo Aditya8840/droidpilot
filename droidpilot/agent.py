@@ -1,6 +1,7 @@
 import json
 import logging
 import time
+from typing import Any
 
 from openai import OpenAI
 
@@ -120,7 +121,7 @@ def run(prompt: str, model: str = "gpt-4o", max_steps: int = 30) -> str:
     logger.info("Screen size: %sx%s", screen_size[0], screen_size[1])
     logger.info("Task: %s", prompt)
 
-    messages = [
+    messages: list[dict[str, Any]] = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": f"Task: {prompt}"},
     ]
@@ -140,7 +141,7 @@ def run(prompt: str, model: str = "gpt-4o", max_steps: int = 30) -> str:
             }
         )
 
-        response = client.chat.completions.create(
+        response = client.chat.completions.create(  # type: ignore[call-overload]
             model=model,
             messages=messages,
             tools=TOOLS,
@@ -172,7 +173,7 @@ def run(prompt: str, model: str = "gpt-4o", max_steps: int = 30) -> str:
             {
                 "role": "tool",
                 "tool_call_id": tool_call.id,
-                "content": result,
+                "content": result or "",
             }
         )
 
