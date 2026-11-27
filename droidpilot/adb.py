@@ -13,6 +13,13 @@ SHELL_ESCAPE_CHARS = {
     ";": "\\;",
     "'": "\\'",
     '"': '\\"',
+    "?": "\\?",
+    "*": "\\*",
+    "$": "\\$",
+    "`": "\\`",
+    "#": "\\#",
+    "~": "\\~",
+    "!": "\\!",
 }
 
 
@@ -72,10 +79,19 @@ def swipe(x1: int, y1: int, x2: int, y2: int, duration_ms: int = 300) -> None:
 
 
 def input_text(text: str) -> None:
-    escaped = text
+    if not text.isascii():
+        # ponytail: `input text` is ASCII-only; an IME-based typer (e.g. ADBKeyboard) lifts this
+        raise ValueError("adb input text only supports ASCII (no emoji/unicode)")
+    escaped = text.replace("\\", "\\\\")
     for char, replacement in SHELL_ESCAPE_CHARS.items():
         escaped = escaped.replace(char, replacement)
     _run(["shell", "input", "text", escaped])
+
+
+def screenshot() -> bytes:
+    return subprocess.run(
+        ["adb", "exec-out", "screencap", "-p"], capture_output=True, check=True, timeout=15
+    ).stdout
 
 
 def press_key(keycode: str) -> None:

@@ -1,8 +1,6 @@
 import json
 import time
 
-from openai import OpenAI
-
 from . import adb
 from .ui_tree import parse
 from .actions import TOOLS
@@ -109,6 +107,8 @@ def _execute_action(
 
 
 def run(prompt: str, model: str = "gpt-4o", max_steps: int = 30) -> str:
+    from openai import OpenAI
+
     client = OpenAI()
 
     serial = adb.check_device()

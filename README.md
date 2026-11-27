@@ -99,6 +99,17 @@ droidpilot "Open Gmail and compose an email to john" --max-steps 50
 python3 -m droidpilot "Turn off WiFi"
 ```
 
+## Use as an MCP server
+
+Let any MCP client (Claude Code, Claude Desktop, Cursor…) be the brain instead of the built-in loop:
+
+```bash
+pip install ".[mcp]"
+claude mcp add droidpilot -- droidpilot-mcp
+```
+
+Tools: `read_screen`, `screenshot`, `tap`, `type_text`, `swipe`, `press`, `open_app`, `list_apps`. No OpenAI key needed.
+
 ## Use cases
 
 **Give hands to your AI coding agent.** If you're building an Android app with an AI coding assistant, DroidPilot can be the testing layer — let the coding agent run your app on a real device and verify the UI works as expected.
