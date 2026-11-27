@@ -9,5 +9,9 @@ dependencies = [
     "python-dotenv>=1.0",
 ]
 
+[project.optional-dependencies]
+mcp = ["mcp>=1.0", "pillow>=10.0"]
+
 [project.scripts]
 droidpilot = "droidpilot.main:main"
+droidpilot-mcp = "droidpilot.mcp_server:main"
